@@ -110,7 +110,11 @@ internal static class BuiltInCmds {
     }
 
     internal static bool listMods(Caller caller, string[] args) {
-        Plugin.logger?.LogInfo("listMods command called");
+        if (Plugin.enableListingMods?.Value ?? false == false){
+            NotifyCaller(caller, "Listing mods is disabled on this server.", Color.red);
+            return true;
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("Loaded mods:");
 

@@ -8,6 +8,7 @@ using UnityEngine;
 using AtlyssCommandLib.API;
 using static AtlyssCommandLib.API.Utils;
 using CodeTalker.Networking;
+using BepInEx.Configuration;
 
 namespace AtlyssCommandLib;
 
@@ -25,12 +26,15 @@ internal class Plugin : BaseUnityPlugin {
     internal static CommandProvider? clientCmds;
 
     internal static bool chatColorsInstalled = false;
+    internal static ConfigEntry<bool>? enableListingMods;
 
     void Awake() {
         logger = Logger;
         logger.LogInfo($"Plugin {PluginInfo.NAME} is loaded!");
         harmony = new Harmony(PluginInfo.GUID);
         harmony.PatchAll(typeof(Patches));
+
+        enableListingMods = Config.Bind("General", "EnableModListing", true, "Enable the /mods command to list server mods.");
 
         chatColorsInstalled = Chainloader.PluginInfos.ContainsKey("StuntedRaccoon.CustomChatColors");
         logger.LogInfo($"Chatcolors {(chatColorsInstalled ? "is" : "isn't")} installed!");
