@@ -43,7 +43,8 @@ internal class Plugin : BaseUnityPlugin {
 
         RegisterCommand("help", "Shows this help message", BuiltInCmds.Help, serverSide: true);
         // RegisterCommand("test", "Test command", testTopLevel);
-        RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, clientSide: false, serverSide: true);
+        if(enableListingMods.Value)
+            RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, clientSide: false, serverSide: true);
 
         registerVanillaCommands();
         addCommandCompatibility();
