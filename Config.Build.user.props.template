@@ -1,0 +1,75 @@
+<!-- Copied from CodeTalker with smol change -->
+<Project>
+    <PropertyGroup>
+        <DeployToProd>false</DeployToProd>
+        <BuildStaging>false</BuildStaging>
+    </PropertyGroup>
+
+    <PropertyGroup>
+		<!-- Edit these 2 things -->
+        <GameDir>\full\path\to\game</GameDir>
+        <ProfileDir>\path\to\r2mm\profile\</ProfileDir>
+
+		<PluginsDir>$(ProfileDir)\BepInEx\plugins</PluginsDir>
+		<BepinCoreDir>$(ProfileDir)\BepInEx\core</BepinCoreDir>
+        <DependsDir>$(GameDir)\ATLYSS_Data\Managed</DependsDir>
+        <StagingDir>$(SolutionRoot)artifacts\dist</StagingDir>
+        <FinalAssemblyName>$(AssemblyName).dll</FinalAssemblyName>
+        <ZipFileName>$(AssemblyName)-$(Version).zip</ZipFileName>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(BuildStaging)' == 'true'">
+    <StagingFiles Include="$(OutputPath)$(FinalAssemblyName)">
+      <Destination>$(StagingDir)\plugins\%(Filename)%(Extension)</Destination>
+    </StagingFiles>
+
+    <StagingFiles Include="$(SolutionRoot)\README.md">
+      <Destination>$(StagingDir)\%(Filename)%(Extension)</Destination>
+    </StagingFiles>
+
+    <StagingFiles Include="$(SolutionRoot)\LICENSE">
+      <Destination>$(StagingDir)\%(Filename)%(Extension)</Destination>
+    </StagingFiles>
+
+    <StagingFiles Include="$(SolutionRoot)\TSMedia\*.*">
+      <Destination>$(StagingDir)\%(Filename)%(Extension)</Destination>
+    </StagingFiles>
+  </ItemGroup>
+
+  <Target Name="PostBuildCopy_FromConfig" AfterTargets="Build"
+    Condition="'$(DeployToProd)' == 'true'">
+    <Message Text="Deploy -> $(PluginsDir)/$(FinalAssemblyName)" Importance="High" />
+    <Copy
+      SourceFiles="$(OutputPath)$(FinalAssemblyName)"
+      DestinationFolder="$(PluginsDir)"
+      Condition="Exists('$(OutputPath)$(FinalAssemblyName)')" />
+  </Target>
+
+  <Target Name="PostBuildCopy_ToStaging" AfterTargets="Build"
+    Condition="'$(BuildStaging)' == 'true'">
+
+    <!-- Ensure staging directory exists? -->
+    <MakeDir Directories="$(StagingDir)" />
+
+	<Message Text="Clearing staging files in $(StagingDir)\*.*" Importance="High" />
+	<ItemGroup>
+		<FilesInStagingFolder Include="$(StagingDir)\*.*" />
+	</ItemGroup>
+	<Delete Files="@(FilesInStagingFolder)" ContinueOnError="false" />
+
+	<Message Text="Copying staging files to $(StagingDir)" Importance="High" />
+
+    <Copy
+      SourceFiles="@(StagingFiles)"
+      DestinationFiles="@(StagingFiles->'%(Destination)')"
+      SkipUnchangedFiles="true"
+      ContinueOnError="false" />
+  </Target>
+
+  <Target Name="ZipStaging" AfterTargets="PostBuildCopy_ToStaging"
+    Condition="'$(BuildStaging)' == 'true'">
+    <Message Text="Creating zip archive $(StagingDir)/../$(ZipFileName)"
+      Importance="High" />
+    <Exec Command="cd $(StagingDir); zip -r $(ZipFileName) ." />
+  </Target>
+</Project>
