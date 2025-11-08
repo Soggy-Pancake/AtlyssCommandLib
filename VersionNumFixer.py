@@ -12,7 +12,7 @@ def main():
         original.truncate()
         json.dump(test, original, indent=4)
 
-    with open("src/Info.cs", 'r+') as info:
+    with open("src/PluginInfo.cs", 'r+') as info:
         lines = info.readlines()
 
         for i in range(len(lines)):
