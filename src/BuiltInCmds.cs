@@ -63,7 +63,9 @@ internal static class BuiltInCmds {
                 else
                     cmd = provider.commands[currentArg];
 
-                helpMsg = cmd.getHelpMessage();
+                helpMsg = '\n' + cmd.getHelpMessage();
+                helpMsg += "\n" + cmd.getDetailedHelpMessage();
+                helpMsg = helpMsg.Trim();
                 string[] validAliases = [];
                 try {
                     validAliases = provider.aliases
@@ -75,7 +77,7 @@ internal static class BuiltInCmds {
                     helpMsg += $"\nAliases: {string.Join(", ", validAliases)}";
                 }
 
-                NotifyCaller(caller, helpMsg);
+                NotifyCaller(caller, helpMsg.Trim());
                 break;
             } else {
                 provider.PrintHelp(caller, currentArg);
