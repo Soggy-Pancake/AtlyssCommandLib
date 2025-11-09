@@ -58,4 +58,4 @@ Providing the root provider is optional but can save time registering it to your
 
 ## License
 
-The license is GPLv3
+The license is LGPLv3
