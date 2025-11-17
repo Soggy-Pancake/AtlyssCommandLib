@@ -85,7 +85,7 @@ internal static class BuiltInCmds {
             }
         }
 
-        return true;
+        return false; // Never forward to server
     }
 
     internal static bool ChatColorProtector(Caller caller, string[] args) {

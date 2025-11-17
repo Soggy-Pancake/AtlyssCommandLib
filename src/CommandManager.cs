@@ -86,7 +86,7 @@ internal class CommandManager {
         if (options.serverSide && options.clientSide) {
             Plugin.logger?.LogInfo("Client and server side command!");
             bool result = cmd.Callback(caller, args);
-            if (!result)
+            if (!result && cmd.Callback != BuiltInCmds.Help)
                 cmd.printHelp(caller);
             return amServer || !result;
             // callback returns true to forward to server if client. Blocks if already server.
