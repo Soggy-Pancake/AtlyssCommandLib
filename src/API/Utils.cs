@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using AtlyssCommandLib.src.API;
 using UnityEngine;
 using static AtlyssCommandLib.API.CommandProvider;
 
@@ -25,8 +26,42 @@ public class Utils {
     public static ModCommand? RegisterCommand(string command, string helpMessage, CommandCallback callback, bool clientSide = true, bool serverSide = false, bool console = false)
         => CommandManager.root.RegisterCommand(command, helpMessage, callback, clientSide, serverSide, console);
 
+    /// <summary>
+    /// Registers a new command with detailed help.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="detailedHelpMessage"></param>
+    /// <param name="callback"></param>
+    /// <param name="clientSide"></param>
+    /// <param name="serverSide"></param>
+    /// <param name="console"></param>
+    /// <returns></returns>
     public static ModCommand? RegisterCommand(string command, string helpMessage, string detailedHelpMessage, CommandCallback callback, bool clientSide = true, bool serverSide = false, bool console = false)
         => CommandManager.root.RegisterCommand(command, helpMessage, detailedHelpMessage, callback, clientSide, serverSide, console);
+
+    /// <summary>
+    /// Registers a new command with CommandOptions.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="callback"></param>
+    /// <param name="options"></param>
+    /// <returns></returns>
+    public static ModCommand? RegisterCommand(string command, string helpMessage, CommandCallback callback, CommandOptions options)
+        => CommandManager.root.RegisterCommand(command, helpMessage, callback, options);
+
+    /// <summary>
+    /// Registers a new command with detailed help and CommandOptions.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="detailedHelpMessage"></param>
+    /// <param name="callback"></param>
+    /// <param name="options"></param>
+    /// <returns></returns>
+    public static ModCommand? RegisterCommand(string command, string helpMessage, string detailedHelpMessage, CommandCallback callback, CommandOptions options)
+        => CommandManager.root.RegisterCommand(command, helpMessage, detailedHelpMessage, callback, options);
 
     /// <summary>
     /// Registers a command given a ModCommand object.
@@ -103,17 +138,23 @@ public class Utils {
     /// <returns></returns>
     public static string buildHelpMessage(Caller caller, CommandProvider provider) {
         string[] getCommands(CommandProvider provider) {
-            bool remotePlayer = caller.player != Player._mainPlayer;
+            bool remotePlayer = caller.IsRemote;
 
             return provider.commands
-                        .Where(c => (caller.isConsole && (c.Value.consoleCommand || c.Value.serverSideCommand)) ||
-                                    (caller.isHost && c.Value.serverSideCommand) ||
-                                    (!remotePlayer && c.Value.clientSideCommand))
-                        .Select(c => c.Key)
+                        .Where(cmd => {
+                                var o = cmd.Value.options;
+                                return (caller.isConsole && (o.consoleCmd || o.serverSide)) ||
+                                        (caller.isHost && (o.serverSide || o.hostOnly)) ||
+                                        (!remotePlayer && o.clientSide);
+                                })
+                        .Select(cmd => cmd.Key)
                         .Concat(provider.childProviders
-                            .Where(p => (caller.isConsole && (p.Value.hasConsoleCommands || p.Value.hasServerCommands)) ||
-                                        (caller.isHost && p.Value.hasServerCommands) ||
-                                        (!remotePlayer && p.Value.hasClientCommands))
+                            .Where(pbj => {
+                                var p = pbj.Value;
+                                return (caller.isConsole && (p.hasConsoleCommands || p.hasServerCommands)) ||
+                                        (caller.isHost && (p.hasServerCommands || p.hasHostOnlyCommands)) ||
+                                        (!remotePlayer && p.hasClientCommands);
+                            })
                             .Select(s => s.Key))
                         .Distinct().ToArray();
         }

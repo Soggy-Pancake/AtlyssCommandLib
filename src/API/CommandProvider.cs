@@ -6,6 +6,7 @@ using System.Linq;
 using static AtlyssCommandLib.API.Utils;
 using HarmonyLib;
 using UnityEngine;
+using AtlyssCommandLib.src.API;
 
 namespace AtlyssCommandLib.API;
 
@@ -28,6 +29,7 @@ public class CommandProvider {
     internal bool hasClientCommands = false;
     internal bool hasServerCommands = false;
     internal bool hasConsoleCommands = false;
+    internal bool hasHostOnlyCommands = false;
 
     /// <summary>
     /// The root CommandProvider.
@@ -127,31 +129,80 @@ public class CommandProvider {
     }
 
     /// <summary>
+    /// Registers a command with command options.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="callback"></param>
+    /// <param name="clientSide"></param>
+    /// <param name="serverSide"></param>
+    /// <param name="console"></param>
+    /// <returns></returns>
+    public ModCommand? RegisterCommand(string command, string helpMessage, CommandCallback callback, CommandOptions options) {
+        if (command.StartsWith('/'))
+            command = command[1..];
+
+        if (command.Contains(' ')) {
+            Plugin.logger?.LogError($"Command '{command}' contains spaces! Not registering Command!");
+            return null;
+        }
+
+        ModCommand cmd = new ModCommand(command, helpMessage, callback, options);
+        RegisterCommand(cmd);
+        return cmd;
+    }
+
+    /// <summary>
+    /// Registers a command with command options.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="callback"></param>
+    /// <param name="clientSide"></param>
+    /// <param name="serverSide"></param>
+    /// <param name="console"></param>
+    /// <returns></returns>
+    public ModCommand? RegisterCommand(string command, string helpMessage, string detailedHelpMessage, CommandCallback callback, CommandOptions options) {
+        if (command.StartsWith('/'))
+            command = command[1..];
+
+        if (command.Contains(' ')) {
+            Plugin.logger?.LogError($"Command '{command}' contains spaces! Not registering Command!");
+            return null;
+        }
+
+        ModCommand cmd = new ModCommand(command, helpMessage, detailedHelpMessage, callback, options);
+        RegisterCommand(cmd);
+        return cmd;
+    }
+
+    /// <summary>
     /// Registers a command given a ModCommand object.
     /// </summary>
     /// <param name="cmd"></param>
     public void RegisterCommand(ModCommand cmd) {
+
+        CommandOptions options = cmd.options;
         if (commands.ContainsKey(cmd.Command) || aliases.ContainsKey(cmd.Command)) {
             Plugin.logger?.LogError($"Failed to register Command '{cmd.Command}'! Command or alias with that name already exists!");
             return;
         }
 
-        if (!(cmd.clientSideCommand || cmd.serverSideCommand || cmd.consoleCommand)) {
+        if (!(options.clientSide || options.serverSide || options.consoleCmd || options.hostOnly)) {
             Plugin.logger?.LogError($"Failed to register Command '{cmd.Command}'! Command has to either be a client, server, or console Command!");
             return;
         }
-
-        if (cmd.consoleCommand && (cmd.clientSideCommand || cmd.serverSideCommand))
-            Plugin.logger?.LogWarning($"A console Command '{prefix} {cmd.Command}' can be executed by clients! Make sure this is safe!");
 
         commands.Add(cmd.Command, cmd);
 
         // Apply server commands flag to all parents
         CommandProvider? parent = this;
+        CommandOptions cmdOptions = cmd.options;
         while (parent != null) {
-            parent.hasClientCommands = parent.hasClientCommands || cmd.clientSideCommand;
-            parent.hasServerCommands = parent.hasServerCommands || cmd.serverSideCommand;
-            parent.hasConsoleCommands = parent.hasConsoleCommands || cmd.consoleCommand;
+            parent.hasClientCommands = parent.hasClientCommands || cmdOptions.clientSide;
+            parent.hasServerCommands = parent.hasServerCommands || cmdOptions.serverSide;
+            parent.hasConsoleCommands = parent.hasConsoleCommands || cmdOptions.consoleCmd;
+            parent.hasHostOnlyCommands = parent.hasHostOnlyCommands || cmdOptions.hostOnly;
             parent = parent.ParentProvider;
         }
     }

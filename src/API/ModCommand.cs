@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using AtlyssCommandLib.src.API;
 using static AtlyssCommandLib.API.Utils;
 
 namespace AtlyssCommandLib.API; 
@@ -15,9 +16,7 @@ public class ModCommand {
     string DetailedHelpMessage = "";
 
     internal CommandCallback Callback;
-    internal bool clientSideCommand;
-    internal bool serverSideCommand;
-    internal bool consoleCommand;
+    internal CommandOptions options;
 
     /// <summary>
     /// Creates a new ModCommand.
@@ -32,9 +31,7 @@ public class ModCommand {
         Command = command;
         HelpMessage = helpMessage.Trim();
         Callback = callback;
-        clientSideCommand = clientSide;
-        serverSideCommand = serverSide;
-        consoleCommand = console;
+        options = new CommandOptions(clientSide, serverSide, console);
     }
 
     /// <summary>
@@ -52,9 +49,38 @@ public class ModCommand {
         HelpMessage = helpMessage.Trim();
         DetailedHelpMessage = detailedHelp.Trim();
         Callback = callback;
-        clientSideCommand = clientSide;
-        serverSideCommand = serverSide;
-        consoleCommand = console;
+        options = new CommandOptions(clientSide, serverSide, console);
+    }
+
+    /// <summary>
+    /// Creates a new ModCommand with CommandOptions.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="detailedHelp"></param>
+    /// <param name="callback"></param>
+    /// <param name="options"></param>
+    public ModCommand(string command, string helpMessage, CommandCallback callback, CommandOptions options) {
+        Command = command;
+        HelpMessage = helpMessage.Trim();
+        Callback = callback;
+        this.options = options;
+    }
+
+    /// <summary>
+    /// Creates a new ModCommand with CommandOptions.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="helpMessage"></param>
+    /// <param name="detailedHelp"></param>
+    /// <param name="callback"></param>
+    /// <param name="options"></param>
+    public ModCommand(string command, string helpMessage, string detailedHelp, CommandCallback callback, CommandOptions options) {
+        Command = command;
+        HelpMessage = helpMessage.Trim();
+        DetailedHelpMessage = detailedHelp.Trim();
+        Callback = callback;
+        this.options = options;
     }
 
 

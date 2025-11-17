@@ -20,7 +20,7 @@ internal class CommandManager {
 
         serverCommands.Clear();
         foreach (var cmd in root.commands.Values) {
-            if (cmd.serverSideCommand && (cmd.Command != "chatcolor" || (cmd.Command == "chatcolor" && Plugin.chatColorsInstalled))) {
+            if (cmd.options.serverSide && (cmd.Command != "chatcolor" || (cmd.Command == "chatcolor" && Plugin.chatColorsInstalled))) {
                 serverCommands[cmd.Command] = cmd.getHelpMessage();
             }
         }
@@ -41,14 +41,24 @@ internal class CommandManager {
     }
 
     internal static bool execCommand(ModCommand cmd, Caller caller, string[] args) {
-        bool amServer = Player._mainPlayer.NC()?.Network_isHostPlayer ?? false;
+        bool amServer = caller.isHost;
+        var options = cmd.options;
 
         Plugin.logger?.LogInfo("Command being called: " + caller.cmdPrefix);
         Plugin.logger?.LogInfo("Am server?: " + amServer);
-        Plugin.logger?.LogInfo($"cmd: server/client/console {cmd.serverSideCommand} {cmd.clientSideCommand} {cmd.consoleCommand}");
+        Plugin.logger?.LogInfo($"cmd: server/client/console {cmd.options.serverSide} {cmd.options.clientSide} {cmd.options.consoleCmd}");
 
         // Console only
-        if (cmd.consoleCommand) { 
+        if (options.consoleCmd) { 
+            if (caller.isConsole)
+                cmd.Callback(caller, args);
+            else
+                Plugin.logger?.LogError($"Command '{caller.cmdPrefix}' is console only. Caller is console: {caller.isConsole}");
+            return true;
+        }
+
+        // Host only
+        if (options.hostOnly) {
             if (caller.isConsole)
                 cmd.Callback(caller, args);
             else
@@ -57,7 +67,7 @@ internal class CommandManager {
         }
 
         // server side only
-        if (!cmd.clientSideCommand && cmd.serverSideCommand && amServer) { 
+        if (!options.clientSide && options.serverSide && amServer) { 
             Plugin.logger?.LogInfo("Server side only command!");
             if (!cmd.Callback(caller, args))
                 cmd.printHelp(caller);
@@ -65,7 +75,7 @@ internal class CommandManager {
         }
 
         // client side only
-        if (cmd.clientSideCommand && !cmd.serverSideCommand) { 
+        if (options.clientSide && !options.serverSide) { 
             Plugin.logger?.LogInfo("Client side only command!");
             if (!cmd.Callback(caller, args))
                 cmd.printHelp(caller);
@@ -73,7 +83,7 @@ internal class CommandManager {
         }
 
         // Server and client side
-        if (!cmd.consoleCommand && cmd.serverSideCommand && cmd.clientSideCommand) {
+        if (options.serverSide && options.clientSide) {
             Plugin.logger?.LogInfo("Client and server side command!");
             bool result = cmd.Callback(caller, args);
             if (!result)
