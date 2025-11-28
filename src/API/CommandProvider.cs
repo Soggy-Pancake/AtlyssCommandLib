@@ -80,63 +80,12 @@ public class CommandProvider {
     }
 
     /// <summary>
-    /// Registers a new command.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="helpMessage"></param>
-    /// <param name="callback"></param>
-    /// <param name="clientSide"></param>
-    /// <param name="serverSide"></param>
-    /// <param name="console"></param>
-    /// <returns></returns>
-    public ModCommand? RegisterCommand(string command, string helpMessage, CommandCallback callback, bool clientSide = true, bool serverSide = false, bool console = false) {
-        if (command.StartsWith('/'))
-            command = command[1..];
-
-        if (command.Contains(' ')) {
-            Plugin.logger?.LogError($"Command '{command}' contains spaces! Not registering Command!");
-            return null;
-        }
-
-        ModCommand cmd = new ModCommand(command, helpMessage, callback, clientSide, serverSide, console);
-        RegisterCommand(cmd);
-        return cmd;
-    }
-
-    /// <summary>
-    /// Registers a new command with detailed help.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="helpMessage"></param>
-    /// <param name="detailedHelpMessage"></param>
-    /// <param name="callback"></param>
-    /// <param name="clientSide"></param>
-    /// <param name="serverSide"></param>
-    /// <param name="console"></param>
-    /// <returns></returns>
-    public ModCommand? RegisterCommand(string command, string helpMessage, string detailedHelpMessage, CommandCallback callback, bool clientSide = true, bool serverSide = false, bool console = false) {
-        if (command.StartsWith('/'))
-            command = command[1..];
-
-        if (command.Contains(' ')) {
-            Plugin.logger?.LogError($"Command '{command}' contains spaces! Not registering Command!");
-            return null;
-        }
-
-        ModCommand cmd = new ModCommand(command, helpMessage, detailedHelpMessage, callback, clientSide, serverSide, console);
-        RegisterCommand(cmd);
-        return cmd;
-    }
-
-    /// <summary>
     /// Registers a command with command options.
     /// </summary>
     /// <param name="command"></param>
     /// <param name="helpMessage"></param>
     /// <param name="callback"></param>
-    /// <param name="clientSide"></param>
-    /// <param name="serverSide"></param>
-    /// <param name="console"></param>
+    /// <param name="options"></param>
     /// <returns></returns>
     public ModCommand? RegisterCommand(string command, string helpMessage, CommandCallback callback, CommandOptions options) {
         if (command.StartsWith('/'))
@@ -157,10 +106,9 @@ public class CommandProvider {
     /// </summary>
     /// <param name="command"></param>
     /// <param name="helpMessage"></param>
+    /// <param name="detailedHelpMessage"></param>
     /// <param name="callback"></param>
-    /// <param name="clientSide"></param>
-    /// <param name="serverSide"></param>
-    /// <param name="console"></param>
+    /// <param name="options"></param>
     /// <returns></returns>
     public ModCommand? RegisterCommand(string command, string helpMessage, string detailedHelpMessage, CommandCallback callback, CommandOptions options) {
         if (command.StartsWith('/'))
@@ -273,7 +221,7 @@ public class CommandProvider {
     }
 
     internal bool recieveCommand(Caller caller, string command, string[] args) {
-        // Return true if message was handled here
+        // Return true if message was handled here, this is returned straight into __runOriginal but notted so false sends it to chat
 
         if (command.StartsWith('/'))
             command = command[1..];

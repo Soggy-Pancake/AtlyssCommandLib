@@ -14,33 +14,6 @@ namespace AtlyssCommandLib.API;
 public class Utils {
 
     /// <summary>
-    /// Registers a new command.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="helpMessage"></param>
-    /// <param name="callback"></param>
-    /// <param name="clientSide"></param>
-    /// <param name="serverSide"></param>
-    /// <param name="console"></param>
-    /// <returns></returns>
-    public static ModCommand? RegisterCommand(string command, string helpMessage, CommandCallback callback, bool clientSide = true, bool serverSide = false, bool console = false)
-        => CommandManager.root.RegisterCommand(command, helpMessage, callback, clientSide, serverSide, console);
-
-    /// <summary>
-    /// Registers a new command with detailed help.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="helpMessage"></param>
-    /// <param name="detailedHelpMessage"></param>
-    /// <param name="callback"></param>
-    /// <param name="clientSide"></param>
-    /// <param name="serverSide"></param>
-    /// <param name="console"></param>
-    /// <returns></returns>
-    public static ModCommand? RegisterCommand(string command, string helpMessage, string detailedHelpMessage, CommandCallback callback, bool clientSide = true, bool serverSide = false, bool console = false)
-        => CommandManager.root.RegisterCommand(command, helpMessage, detailedHelpMessage, callback, clientSide, serverSide, console);
-
-    /// <summary>
     /// Registers a new command with CommandOptions.
     /// </summary>
     /// <param name="command"></param>
