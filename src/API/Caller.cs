@@ -23,6 +23,9 @@ public struct Caller {
     /// </summary>
     public readonly bool isConsole;
 
+    /// <summary>
+    /// Whether the caller is a remote player.
+    /// </summary>
     public readonly bool IsRemote => player != Player._mainPlayer;
 
     internal string cmdPrefix;
