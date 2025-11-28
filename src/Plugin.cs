@@ -9,6 +9,7 @@ using AtlyssCommandLib.API;
 using static AtlyssCommandLib.API.Utils;
 using CodeTalker.Networking;
 using BepInEx.Configuration;
+using AtlyssCommandLib.src.API;
 
 namespace AtlyssCommandLib;
 
@@ -22,8 +23,10 @@ internal class Plugin : BaseUnityPlugin {
     internal static HostConsole? hostConsole;
     internal static ConsoleCommandManager? consoleCommandManager;
 
+    // TESTING CUSTOM COMMAND PROVIDERS 
     internal static CommandProvider? serverCmds;
     internal static CommandProvider? clientCmds;
+    // --------------------------------------------
 
     internal static bool chatColorsInstalled = false;
     internal static ConfigEntry<bool>? enableListingMods;
@@ -41,10 +44,13 @@ internal class Plugin : BaseUnityPlugin {
 
         CodeTalkerNetwork.RegisterBinaryListener<ServerCommandPkt>(CommandManager.updateServerCommands);
 
-        RegisterCommand("help", "Shows this help message", BuiltInCmds.Help, serverSide: true);
+        CommandOptions opt = new(clientSide: true, serverSide: true);
+        RegisterCommand("help", "Shows this help message", BuiltInCmds.Help, opt);
         // RegisterCommand("test", "Test command", testTopLevel);
-        if(enableListingMods.Value)
-            RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, clientSide: false, serverSide: true);
+        if (enableListingMods.Value) {
+            opt.clientSide = false;
+            RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, opt);
+        }
 
         registerVanillaCommands();
         addCommandCompatibility();
@@ -74,24 +80,27 @@ internal class Plugin : BaseUnityPlugin {
 
     void registerVanillaCommands() {
         // Normal client commands
-        RegisterCommand("emotes", "Lists all available emotes", compaitibilityCommand, serverSide: true);
-        RegisterCommand("afk", "Go afk", compaitibilityCommand, serverSide: true);
+        CommandOptions compatibilityOpt = new(clientSide: true, serverSide: true);
+        RegisterCommand("emotes", "Lists all available emotes", compaitibilityCommand, compatibilityOpt);
+        RegisterCommand("afk", "Go afk", compaitibilityCommand, compatibilityOpt);
 
         // Console commands
-        RegisterCommand("shutdown", "Shuts down the server with optional countdown.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("cancelsd", "Cancel shutting down the server.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("starthost", "initalizes the server. Server instance must be shut down to initalize.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("kick", "kicks a connected client. Must have a output of the connection ID number. (ex: /kick 2)", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("ban", "same as kick, but also bans the client's address from connecting to the server. (ex: /ban 2)", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("clearbanlist", "clears the list of bans saved in your host settings profile.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("clients", "displays all clients that are connected to the server with Connnection IDs.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("maplist", "displays all loaded map instances on the server.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("savelog", "clears console log.", vanillaServerCommand, clientSide: false, console: true);
-        RegisterCommand("clear", "clears console log.", vanillaServerCommand, clientSide: false, console: true);
+        CommandOptions vanillaConsoleOpt = new(consoleCmd: true);
+        RegisterCommand("shutdown", "Shuts down the server with optional countdown.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("cancelsd", "Cancel shutting down the server.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("starthost", "initalizes the server. Server instance must be shut down to initalize.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("kick", "kicks a connected client. Must have a output of the connection ID number. (ex: /kick 2)", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("ban", "same as kick, but also bans the client's address from connecting to the server. (ex: /ban 2)", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("clearbanlist", "clears the list of bans saved in your host settings profile.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("clients", "displays all clients that are connected to the server with Connnection IDs.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("maplist", "displays all loaded map instances on the server.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("savelog", "clears console log.", vanillaServerCommand, vanillaConsoleOpt);
+        RegisterCommand("clear", "clears console log.", vanillaServerCommand, vanillaConsoleOpt);
     }
 
     void addCommandCompatibility() {
-        RegisterCommand("chatcolor", "Set your chat color using a hex code! /chatcolor #[color]. HASHTAG REQUIRED", BuiltInCmds.ChatColorProtector, serverSide: true);
+        CommandOptions chatColorOpt = new(true, true);
+        RegisterCommand("chatcolor", "Set your chat color using a hex code! /chatcolor #[color]. HASHTAG REQUIRED", BuiltInCmds.ChatColorProtector, chatColorOpt);
 
         // Add others?
     }
