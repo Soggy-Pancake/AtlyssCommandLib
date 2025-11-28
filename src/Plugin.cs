@@ -34,6 +34,11 @@ internal class Plugin : BaseUnityPlugin {
     void Awake() {
         logger = Logger;
         logger.LogInfo($"Plugin {PluginInfo.NAME} is loaded!");
+
+        if (Application.version != PluginInfo.GAMEVER) {
+            logger.LogWarning($"[VERSION MISMATCH] This version of AtlyssCommandLib is made for {PluginInfo.GAMEVER}, you are running {Application.version}.");
+        }
+
         harmony = new Harmony(PluginInfo.GUID);
         harmony.PatchAll(typeof(Patches));
 

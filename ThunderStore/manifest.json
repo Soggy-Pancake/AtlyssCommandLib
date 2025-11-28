@@ -1,7 +1,7 @@
 {
     "name": "AtlyssCommandLib",
     "description": "[BETA] A library to easily create chat commands for Atlyss",
-    "version_number": "0.0.0",
+    "version_number": "0.0.1",
     "website_url": "https://github.com/Soggy-Pancake/AtlyssCommandLib",
     "dependencies": [
         "BepInEx-BepInExPack-5.4.2100",
