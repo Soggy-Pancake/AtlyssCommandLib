@@ -322,6 +322,14 @@ public class CommandProvider {
             PrintHelp(caller, command);
         }
 
+        if (this == Root && (Player._mainPlayer.NC()?.Network_isHostPlayer ?? false)) { 
+            if (CommandManager.serverCommands.ContainsKey(command)) {
+                // NotifyCaller(caller, CommandManager.serverCommands[command]);
+                return false;
+            }
+        }
+
+        // Failed to find command
         return true;
     }
 
