@@ -26,6 +26,9 @@ internal static class Patches {
     internal static bool Client_SendChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, ref string _message) {
         Plugin.logger?.LogInfo("Send chat message!");
 
+        if (!_message.StartsWith('/') || _message.StartsWith("//") || _message.Length == 0)
+            return true;
+
         bool isEmote(string _message) {
             if (emoteList == null) return false;
 
@@ -69,7 +72,7 @@ internal static class Patches {
     internal static void Server_RecieveChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, ref string message) {
         Plugin.logger?.LogInfo("Recieve chat message!");
 
-        if (!message.StartsWith('/') || message.Length == 0 || __instance == null)
+        if (!message.StartsWith('/') || message.StartsWith("//") || message.Length == 0 || __instance == null)
             return;
 
 
