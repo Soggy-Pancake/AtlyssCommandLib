@@ -59,10 +59,10 @@ internal class CommandManager {
 
         // Host only
         if (options.hostOnly) {
-            if (caller.isConsole)
+            if (caller.isHost)
                 cmd.Callback(caller, args);
             else
-                Plugin.logger?.LogError($"Command '{caller.cmdPrefix}' is console only. Caller is console: {caller.isConsole}");
+                Plugin.logger?.LogError($"Command '{caller.cmdPrefix}' is host only. Caller is host: {caller.isHost}");
             return true;
         }
 
