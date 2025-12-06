@@ -10,5 +10,5 @@ internal static class PluginInfo {
     internal const string GAMEVER = "112025.a3";
 
     // NO TOUCHIE | PUT THE NEW VERSION NUMBER IN THE .csproj
-    internal const string VERSION = "0.0.2";
+    internal const string VERSION = "0.0.3";
 }

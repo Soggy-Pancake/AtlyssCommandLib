@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<AssemblyName>AtlyssCommandLib</AssemblyName>
 		<Product>$(AssemblyName)</Product>
-		<Version>0.0.2</Version>
+		<Version>0.0.3</Version>
 		<Authors>Soggy_Pancake</Authors>
 
 		<PackageProjectUrl>https://github.com/Soggy-Pancake/AtlyssCommandLib</PackageProjectUrl>

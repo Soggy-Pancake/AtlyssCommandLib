@@ -1,3 +1,6 @@
+## 0.0.3
+- Make patches run last so other mods can recieve commands
+
 ## 0.0.2
 - Ignore `//` since some people use it in rp
 - Fix console commands being broken
