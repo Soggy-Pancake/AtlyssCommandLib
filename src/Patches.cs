@@ -7,12 +7,15 @@ using System.Linq;
 using UnityEngine.UI;
 using AtlyssCommandLib.API;
 using CodeTalker.Networking;
+using static AtlyssCommandLib.API.Utils;
 
 namespace AtlyssCommandLib;
 internal static class Patches {
 
     static ScriptableEmoteList? emoteList;
     static InputField? consoleInputField;
+    static bool blockMsg = false; // Stored for postfix patches
+    public static string blockReason = "";
 
     public static string[] commandSplit(string message) => Regex.Matches(message, @"[\""].+?[\""]|[^ ]+")
                      .Cast<Match>()
@@ -21,7 +24,7 @@ internal static class Patches {
                      .ToArray();
 
     [HarmonyPrefix]
-    [HarmonyPriority(int.MinValue)]
+    [HarmonyPriority(int.MaxValue)]
     [HarmonyPatch(typeof(ChatBehaviour), "Cmd_SendChatMessage")]
     internal static bool Client_SendChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, ref string _message) {
         Plugin.logger?.LogInfo("Send chat message!");
@@ -54,17 +57,32 @@ internal static class Patches {
             var args = commandSplit(_message);
 
             Caller caller = new Caller { player = Player._mainPlayer };
-            __runOriginal = !CommandManager.root.recieveCommand(caller, args[0], args.Length > 1 ? args[1..] : []);
+            blockMsg = CommandManager.root.recieveCommand(caller, args[0], args.Length > 1 ? args[1..] : []);
+        }
+        return true;
+    }
 
-            if(!__runOriginal){
-                Plugin.logger?.LogInfo("Fuck you command is not getting sent");
-                return false;
+    [HarmonyPrefix]
+    [HarmonyPriority(int.MinValue)]
+    [HarmonyPatch(typeof(ChatBehaviour), "Cmd_SendChatMessage")]
+    internal static bool Client_BlockChatMessage(ref ChatBehaviour __instance, ref string _message, ref bool __runOriginal) {
+        // THE GREAT FILTER
+        if (blockMsg) {
+            __runOriginal = false;
+            blockMsg = false;
+
+            if (blockReason != "") { 
+                NotifyCaller(new Caller { player = Player._mainPlayer }, blockReason);
+                blockReason = "";
             }
             //CommandManager.HandleCommand(_message);
         }
 
+            return false;
+        }
         return true;
     }
+
 
     [HarmonyPrefix]
     [HarmonyPriority(int.MinValue)]

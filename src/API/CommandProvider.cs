@@ -221,7 +221,7 @@ public class CommandProvider {
     }
 
     internal bool recieveCommand(Caller caller, string command, string[] args) {
-        // Return true if message was handled here, this is returned straight into __runOriginal but notted so false sends it to chat
+        // Return true if message was handled here
 
         if (command.StartsWith('/'))
             command = command[1..];
@@ -291,7 +291,7 @@ public class CommandProvider {
                 list += ' ';
             }
 
-            NotifyCaller(caller, $"\nCommand '{command}' not found! Use /help {list}to list available comands");
+            Patches.blockReason = $"\nCommand '{command}' not found! Use /help {list}to list available comands";
             return true;
         }
     }
