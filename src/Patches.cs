@@ -68,14 +68,13 @@ internal static class Patches {
     internal static bool Client_BlockChatMessage(ref ChatBehaviour __instance, ref string _message, ref bool __runOriginal) {
         // THE GREAT FILTER
         if (blockMsg) {
-            __runOriginal = false;
             blockMsg = false;
-
-            if (blockReason != "") { 
+            if (blockReason != "" && __runOriginal) { 
                 NotifyCaller(new Caller { player = Player._mainPlayer }, blockReason);
                 blockReason = "";
             }
 
+            __runOriginal = false;
             return false;
         }
         return true;
