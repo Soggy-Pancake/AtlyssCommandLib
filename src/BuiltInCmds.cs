@@ -19,13 +19,13 @@ internal static class BuiltInCmds {
         // Server should give us its own help messages for server only commands so we never need to send the server a help command
 
         foreach (var arg in args)
-            Plugin.logger?.LogInfo("Arg: " + '"' + arg + '"');
+            Plugin.logger?.LogDebug("Arg: " + '"' + arg + '"');
 
         CommandProvider provider = root;
         string currentArg = "", helpMsg;
 
         for (int i = 0;;) {
-            Plugin.logger?.LogInfo($"help loop {i + 1} len {args.Length}: {string.Concat(args)}");
+            Plugin.logger?.LogDebug($"help loop {i + 1} len {args.Length}: {string.Concat(args)}");
             if (i == args.Length || args[i] == "") {
                 helpMsg = buildHelpMessage(caller, provider);
                 string[] validAliases = [];
@@ -48,7 +48,7 @@ internal static class BuiltInCmds {
 
             if (provider.childProviders.ContainsKey(currentArg)) {
                 provider = provider.childProviders[currentArg];
-                Plugin.logger?.LogInfo($"found provider {currentArg}");
+                Plugin.logger?.LogDebug($"found provider {currentArg}");
                 if (args.Length > 1) {
                     args = args[1..];
                 } else
