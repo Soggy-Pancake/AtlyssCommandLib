@@ -39,7 +39,7 @@
 		<Reference Include="$(DependsDir)\Newtonsoft*.dll" Private="False" />
 
 		<!-- Plugin References -->
-		<PackageReference Include="Soggy_Pancake-CodeYapper" Version="2.*.*" />
+		<PackageReference Include="Soggy_Pancake-CodeYapper" Version="2.1.*" />
 	</ItemGroup>
 
 	<PropertyGroup>
