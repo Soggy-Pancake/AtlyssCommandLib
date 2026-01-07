@@ -1,3 +1,12 @@
+## 0.0.4
+- Always parse like in 0.0.2 but delays killing the message so other mods can still parse it
+	- Parses commands first and if fails adds a flag to prevent sending to server
+	- This allows other mods to still parse the message even if it's a command
+		- Any mod that would forward the message to the server tho would still break
+- Clients no longer send a server command list packet
+- Server command list is now sent through p2p
+- CommandOptions is now optional again when registering commands
+		
 ## 0.0.3
 - Make patches run last so other mods can recieve commands
 
