@@ -6,7 +6,6 @@ using System.Linq;
 using static AtlyssCommandLib.API.Utils;
 using HarmonyLib;
 using UnityEngine;
-using AtlyssCommandLib.src.API;
 
 namespace AtlyssCommandLib.API;
 
