@@ -42,7 +42,7 @@ internal class Plugin : BaseUnityPlugin {
         harmony = new Harmony(PluginInfo.GUID);
         harmony.PatchAll(typeof(Patches));
 
-        enableListingMods = Config.Bind("General", "EnableModListing", true, "Enable the /mods command to list server mods.");
+        ModConfig.init(Config);
 
         chatColorsInstalled = Chainloader.PluginInfos.ContainsKey("StuntedRaccoon.CustomChatColors");
         logger.LogInfo($"Chatcolors {(chatColorsInstalled ? "is" : "isn't")} installed!");
@@ -52,7 +52,7 @@ internal class Plugin : BaseUnityPlugin {
         CommandOptions opt = new(clientSide: true, serverSide: true);
         RegisterCommand("help", "Shows this help message", BuiltInCmds.Help, opt);
         // RegisterCommand("test", "Test command", testTopLevel);
-        if (enableListingMods.Value) {
+        if (ModConfig.enableListingMods?.Value ?? false) {
             opt.clientSide = false;
             RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, opt);
         }

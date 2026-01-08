@@ -112,7 +112,7 @@ internal static class BuiltInCmds {
     }
 
     internal static bool listMods(Caller caller, string[] args) {
-        if (Plugin.enableListingMods?.Value ?? false == false){
+        if (ModConfig.enableListingMods?.Value ?? false == false){
             NotifyCaller(caller, "Listing mods is disabled on this server.", Color.red);
             return true;
         }
