@@ -1,3 +1,6 @@
+## 0.0.6
+- Make sure chatcolors loads before commandlib
+
 ## 0.0.5
 - Add option to send failed commands to server anyway (defaults to false)
 	- Allows server side mods like HostModeration to still recieve commands
