@@ -67,10 +67,11 @@ internal static class Patches {
     [HarmonyPatch(typeof(ChatBehaviour), "Cmd_SendChatMessage")]
     internal static bool Client_BlockChatMessage(ref ChatBehaviour __instance, ref string _message, ref bool __runOriginal) {
         // THE GREAT FILTER
-        if (blockMsg) {
+        if (blockMsg && (!ModConfig.sendFailedCommands?.Value ?? true)) {
             blockMsg = false;
-            if (blockReason != "" && __runOriginal) { 
-                NotifyCaller(new Caller { player = Player._mainPlayer }, blockReason);
+
+            if (blockReason != "" && __runOriginal) {
+                NotifyCaller(new Caller { player = __instance.GetComponent<Player>() }, blockReason);
                 blockReason = "";
             }
 
@@ -115,7 +116,7 @@ internal static class Patches {
 
         __runOriginal = !CommandManager.root.recieveCommand(caller, args[0], args.Length > 1 ? args[1..] : []);
 
-        if(consoleInputField == null) {
+        if (consoleInputField == null) {
             var inputFieldField = typeof(HostConsole).GetField("_consoleInputField", BindingFlags.NonPublic | BindingFlags.Instance);
             consoleInputField = (InputField)inputFieldField.GetValue(__instance);
         }
