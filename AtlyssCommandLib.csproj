@@ -40,6 +40,7 @@
 
 		<!-- Plugin References -->
 		<PackageReference Include="Soggy_Pancake-CodeYapper" Version="2.1.*" />
+		<PackageReference Include="Nessie-EasySettings" Version="1.2.*" />
 	</ItemGroup>
 
 	<PropertyGroup>

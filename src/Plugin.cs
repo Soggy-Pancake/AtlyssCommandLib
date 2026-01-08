@@ -9,11 +9,11 @@ using AtlyssCommandLib.API;
 using static AtlyssCommandLib.API.Utils;
 using CodeTalker.Networking;
 using BepInEx.Configuration;
-using AtlyssCommandLib.src.API;
 
 namespace AtlyssCommandLib;
 
 [BepInDependency("CodeTalker")]
+[BepInDependency("EasySettings", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInPlugin(PluginInfo.GUID, PluginInfo.NAME, PluginInfo.VERSION)]
 internal class Plugin : BaseUnityPlugin {
 
@@ -29,7 +29,6 @@ internal class Plugin : BaseUnityPlugin {
     // --------------------------------------------
 
     internal static bool chatColorsInstalled = false;
-    internal static ConfigEntry<bool>? enableListingMods;
 
     void Awake() {
         logger = Logger;
