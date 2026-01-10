@@ -18,7 +18,7 @@ internal class ModConfig {
 
         configFile = config;
         enableListingMods = config.Bind("General", "EnableModListing", true, "Enable the /mods command to list server mods.");
-        sendFailedCommands = config.Bind("General", "SendFailedCommandsToServer", true, "If a command fails to parse on the client side, still send it to the server. Useful for commands that only run server side. CommandLib will no longer print the error help message! The server will still block commands from properly entering chat, but if the server is vanilla it will enter chat!");
+        sendFailedCommands = config.Bind("General", "sendFailedCommandsToServer", true, "If a command fails to parse on the client side, still send it to the server. Useful for commands that only run server side. CommandLib will no longer print the error help message! The server will still block commands from properly entering chat, but if the server is vanilla it will enter chat!");
 
         if (Chainloader.PluginInfos.ContainsKey("EasySettings")) {
             try {
