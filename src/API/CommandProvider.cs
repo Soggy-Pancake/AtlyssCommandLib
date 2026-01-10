@@ -269,7 +269,7 @@ public class CommandProvider {
             return targetProvider.recieveCommand(caller, cmd, args.Length > 1 ? args[1..] : []);
         }
 
-        if (this == Root && (Player._mainPlayer.NC()?.Network_isHostPlayer ?? false)) { 
+        if (this == Root && !amServer) { 
             if (CommandManager.serverCommands.ContainsKey(command)) {
                 // NotifyCaller(caller, CommandManager.serverCommands[command]);
                 return false;
@@ -293,6 +293,12 @@ public class CommandProvider {
             }
 
             Patches.blockReason = $"\nCommand '{command}' not found! Use /help {list}to list available comands";
+            if (this == Root && (ModConfig.sendFailedCommands?.Value ?? false)){
+                Plugin.logger?.LogDebug("Allowing failed command through!");
+                return false;
+            }
+
+            Patches.blockMsg = true;
             return true;
         }
     }
