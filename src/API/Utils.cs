@@ -103,6 +103,29 @@ public class Utils {
     }
 
     /// <summary>
+    /// Returns the full path to the provider (ex: "provider1 subprovider1 subprovider2" for cmd "/provider1 subprovider1 subprovider2")
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <returns></returns>
+    public static string GetProviderPath(CommandProvider provider) {
+        List<string> stack = new();
+        CommandProvider? p = provider;
+        while (p?.ParentProvider != null) {
+            stack.Add(p.prefix);
+            p = p.ParentProvider;
+        }
+
+        string list = "";
+        if (stack.Count > 0) {
+            stack.Reverse();
+            list = string.Join(' ', stack);
+            list += ' ';
+        }
+
+        return list;
+    }
+
+    /// <summary>
     /// Creates the help message for a CommandProvider.
     /// </summary>
     /// <param name="caller"></param>
