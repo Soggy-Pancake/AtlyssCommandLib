@@ -153,18 +153,26 @@ public class Utils {
                         .Distinct().ToArray();
         }
 
+        string path = GetProviderPath(provider);
         string[] availableCommands = getCommands(provider);
         if (provider == Root)
             availableCommands = availableCommands.Concat(CommandManager.serverCommands.Keys).Distinct().ToArray();
 
-        int maxCmdLength = availableCommands.Max(c => c.Length);
+        string[] cmdWithPath = availableCommands
+            .Select(c => path + c)
+            .ToArray();
+
+        int maxCmdLength = cmdWithPath.Max(c => c.Length);
         maxCmdLength = ((maxCmdLength - 1) / 4 + 1) * 4;
 
         string cmds = "Available commands: \n";
-        foreach (var cmd in availableCommands)
-            cmds += "/" + cmd.PadRight(maxCmdLength) + " - " +
+        for (int i = 0; i < availableCommands.Length; i++) {
+            var cmd = availableCommands[i];
+            var fullCmd = path + cmd;
+            cmds += "/" + fullCmd.PadRight(maxCmdLength) + " - " +
                                            ((provider.commands.ContainsKey(cmd) ? provider.commands[cmd].getHelpMessage() : null) ??
                                             (provider.childProviders.ContainsKey(cmd) ? provider.childProviders[cmd]?.getHelpMessage() : "ERROR")) + "\n";
+        }
         return cmds.TrimEnd();
     }
 }
