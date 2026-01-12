@@ -247,23 +247,8 @@ public class CommandProvider {
         return (this, null, []);
     }
 
-    internal string GetNotFoundHelpCommand(string command)
-    {
-        List<string> stack = new();
-        CommandProvider? p = this;
-        while (p.ParentProvider != null) {
-            stack.Add(p.prefix);
-            p = p.ParentProvider;
-        }
-
-        string list = "";
-        if (stack.Count > 0) {
-            stack.Reverse();
-            list = string.Join(' ', stack);
-            list += ' ';
-        }
-
-        return $"\nCommand '{command}' not found! Use /help {list}to list available comands";
+    internal string GetNotFoundHelpCommand(string command) {
+        return $"\nCommand '{command}' not found! Use /help {GetProviderPath(this)}to list available comands";
     }
 
     /// <summary>
@@ -282,26 +267,12 @@ public class CommandProvider {
     public virtual void PrintHelp(Caller caller, string cmd) {
         string msg = "";
 
-        if(helpHeader != "")
+        if (helpHeader != "")
             msg += '\n' + helpHeader + "\n\n";
 
         msg += buildHelpMessage(caller, this);
+        msg += $"\nCommand '{cmd}' not found! Use /help {GetProviderPath(this)}to list available comands";
 
-        List<string> stack = new();
-        CommandProvider? p = this;
-        while (p?.ParentProvider != null) {
-            stack.Add(p.prefix);
-            p = p.ParentProvider;
-        }
-
-        string list = "";
-        if (stack.Count > 0) {
-            stack.Reverse();
-            list = string.Join(' ', stack);
-            list += ' ';
-        }
-
-        msg += $"\nCommand '{cmd}' not found! Use /help {list}to list available comands";
         NotifyCaller(caller, msg);
     }
 }
