@@ -57,7 +57,7 @@ internal static class Patches {
         {
             var options = resolvedCommand.options;
 
-            if (options.chatCommand == ChatCommandType.ClientSide || options.chatCommand == ChatCommandType.HostOnly && caller.isHost)
+            if (options.chatCommand == ChatCommandType.ClientSide || (options.chatCommand == ChatCommandType.HostOnly && caller.isHost))
             {
                 // Normally vanilla commands are intercepted and don't reach this method
                 Plugin.logger?.LogDebug($"Procesing command {_message} in {nameof(Client_SendChatMessage)}");
