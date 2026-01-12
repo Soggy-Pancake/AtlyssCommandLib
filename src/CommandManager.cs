@@ -63,7 +63,7 @@ internal class CommandManager {
             } else if (!string.IsNullOrEmpty(e.ParamName) && !string.IsNullOrEmpty(e.Message)) {
                 NotifyCaller(caller, $"'{e.ParamName}' is invalid! Reason: {e.Message}");
             } else
-                Plugin.logger?.LogError($"Recieved invalid arguments for command '{caller.cmdPrefix} {string.Join(" ", args)}' Error: " + e);
+                NotifyCaller(caller, $"Recieved invalid arguments for command '{caller.cmdPrefix} {string.Join(" ", args)}' Error: " + e);
 
             cmd.printHelp(caller);
             return false;
