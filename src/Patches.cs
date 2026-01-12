@@ -14,113 +14,166 @@ using static AtlyssCommandLib.API.Utils;
 
 namespace AtlyssCommandLib;
 internal static class Patches {
-
-    static ScriptableEmoteList? emoteList;
-    static InputField? consoleInputField;
     public static bool blockMsg = false; // Stored for postfix patches
-    public static string blockReason = "";
 
     public static string[] commandSplit(string message) => Regex.Matches(message, @"[\""].+?[\""]|[^ ]+")
-                     .Cast<Match>()
-                     .Select(m => m.Value.Trim('"'))
-                     .Where(m => !string.IsNullOrWhiteSpace(m))
-                     .ToArray();
+        .Cast<Match>()
+        .Select(m => m.Value.Trim('"'))
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .ToArray();
+    
+    public static bool getValidCommand(string message, out string[] args)
+    {
+        args = [];
+            
+        var match = Regex.Match(message, @"<color=.*>(.*)<\/color>");
+
+        if (match.Success)
+            message = match.Groups[1].Value;
+        
+        if (!message.StartsWith('/') || message.StartsWith("//") || message.Length == 0)
+            return false;
+
+        message = message[1..];
+
+        args = commandSplit(message);
+
+        return args.Length > 0;
+    }
 
     [HarmonyPrefix]
     [HarmonyPriority(int.MaxValue)]
     [HarmonyPatch(typeof(ChatBehaviour), "Cmd_SendChatMessage")]
-    internal static bool Client_SendChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, ref string _message) {
+    internal static void Client_SendChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, string _message) {
         //Plugin.logger?.LogDebug("Send chat message!");
+        if (!getValidCommand(_message, out var args))
+            return;
 
-        if (!_message.StartsWith('/') || _message.StartsWith("//") || _message.Length == 0)
-            return true;
+        Caller caller = new Caller(args[0], Player._mainPlayer);
 
-        bool isEmote(string _message) {
-            if (emoteList == null) return false;
+        var (provider, resolvedCommand, rest) = CommandManager.root.resolveCommand(args);
+        
+        if (resolvedCommand != null)
+        {
+            var options = resolvedCommand.options;
 
-            foreach (var emote in emoteList._emoteCommandList)
-                if (_message == emote._emoteChatCommand)
-                    return true;
-
-            return false;
+            if (options.chatCommand == ChatCommandType.ClientSide || options.chatCommand == ChatCommandType.HostOnly && caller.isHost)
+            {
+                // Normally vanilla commands are intercepted and don't reach this method
+                Plugin.logger?.LogDebug($"Procesing command {_message} in {nameof(Client_SendChatMessage)}");
+                CommandManager.execCommand(resolvedCommand, caller, rest);
+                blockMsg = true;
+                __runOriginal = false;
+                return;
+            }
+            else if (options.chatCommand == ChatCommandType.ServerSide)
+            {
+                Plugin.logger?.LogDebug($"Sending command {_message} in {nameof(Client_SendChatMessage)} to the server");
+                __runOriginal = true;
+                return; // Send this to the server if the handler returned a success status
+            }
+            else
+            {
+                Plugin.logger?.LogDebug($"Caller {caller} is not allowed to use command {resolvedCommand} in {nameof(Client_SendChatMessage)}");
+                blockMsg = true;
+                __runOriginal = false;
+                return;
+            }
         }
 
-        if (emoteList == null) {
-            var listField = __instance.GetType().GetField("_scriptableEmoteList", BindingFlags.NonPublic | BindingFlags.Instance);
-            emoteList = (ScriptableEmoteList)listField.GetValue(__instance);
+        if (provider == Root) {
+            if (!caller.isHost && CommandManager.serverCommands.ContainsKey(args[0])) {
+                Plugin.logger?.LogDebug($"Sending known server command {_message} in {nameof(Client_SendChatMessage)} to the server");
+                __runOriginal = true; // This is available according to the server, so send it
+                return;
+            }
+
+            if ((ModConfig.sendFailedCommands?.Value ?? false))
+            {
+                Plugin.logger?.LogDebug($"Allowing failed root level command {_message} to go through in {nameof(Client_SendChatMessage)}!");
+                __runOriginal = true; // Assume it's an unknown external server side command and send it anyway
+                return;
+            }
         }
 
-        if(_message == "/afk" || isEmote(_message))
-            return true;
-
-        if (_message.StartsWith("/")) {
-            var args = commandSplit(_message);
-
-            Caller caller = new Caller { player = Player._mainPlayer };
-            __runOriginal = !CommandManager.root.recieveCommand(caller, args[0], args.Length > 1 ? args[1..] : []);
-        }
-        return true;
+        NotifyCaller(caller, provider.GetNotFoundHelpCommand(args[^1]));
+        blockMsg = true;
+        __runOriginal = false; // Do not send this command
     }
 
     [HarmonyPrefix]
     [HarmonyPriority(int.MinValue)]
     [HarmonyPatch(typeof(ChatBehaviour), "Cmd_SendChatMessage")]
-    internal static bool Client_BlockChatMessage(ref ChatBehaviour __instance, ref string _message, ref bool __runOriginal) {
+    internal static void Client_BlockChatMessage(ref ChatBehaviour __instance, ref string _message, ref bool __runOriginal) {
         // THE GREAT FILTER
-        if (blockMsg && (!ModConfig.sendFailedCommands?.Value ?? true)) {
-            blockMsg = false;
-
-            if (blockReason != "") {
-                NotifyCaller(new Caller { player = __instance.GetComponent<Player>() }, blockReason);
-                blockReason = "";
-            }
-
-            return false;
-        }
-        blockMsg = false; // need to always reset
-        return true;
+        if (blockMsg) 
+            __runOriginal = false; // Force block command from sending
+        
+        blockMsg = false;
     }
-
-
+    
     [HarmonyPrefix]
     [HarmonyPriority(int.MinValue)]
     [HarmonyPatch(typeof(ChatBehaviour), "Rpc_RecieveChatMessage")]
-    internal static void Server_RecieveChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, ref string message) {
+    internal static void Server_RecieveChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, string message) {
         //Plugin.logger?.LogDebug("Recieve chat message!");
 
-        if (!message.StartsWith('/') || message.StartsWith("//") || message.Length == 0 || __instance == null)
+        if (__instance == null || !getValidCommand(message, out var args))
             return;
 
+        Caller caller = new(args[0], __instance.gameObject.GetComponent<Player>());
+        
+        var (provider, resolvedCommand, rest) = CommandManager.root.resolveCommand(args);
+        
+        // Skip sending the message to other clients *only if* we parsed the command and it's not a vanilla / compatibility command
+        if (resolvedCommand != null)
+        {
+            var options = resolvedCommand.options;
 
-        string cmd = message.Split()[0][1..];
-        var args = commandSplit(message);
-
-        Caller caller = new(cmd, __instance.gameObject.GetComponent<Player>());
-
-        __runOriginal = !CommandManager.root.recieveCommand(caller, args[0], args.Length > 1 ? args[1..] : []);
+            if (options.chatCommand == ChatCommandType.ServerSide)
+            {
+                Plugin.logger?.LogDebug($"Procesing command {message} in {nameof(Server_RecieveChatMessage)}");
+                CommandManager.execCommand(resolvedCommand, caller, rest);
+                __runOriginal = options.mustRunVanillaCode;
+            }
+            else
+            {
+                Plugin.logger?.LogDebug($"Caller {caller} is not allowed to use command {resolvedCommand} in {nameof(Server_RecieveChatMessage)}");
+                __runOriginal = false;
+            }
+        }
     }
 
     [HarmonyPrefix]
     [HarmonyPriority(int.MinValue)]
     [HarmonyPatch(typeof(HostConsole), "Send_ServerMessage")]
-    internal static void Console_RecieveCommand(ref HostConsole __instance, ref string _message, ref bool __runOriginal) {
-        if (!_message.StartsWith('/') || _message.Length == 0)
+    internal static void Console_RecieveCommand(ref HostConsole __instance, string _message, ref bool __runOriginal) {
+        if (!getValidCommand(_message, out var args))
             return;
 
         // could be nice to put the player in here if we want to track oped player commands
 
-        string cmd = _message.Split()[0][1..];
-        var args = commandSplit(_message);
+        Caller caller = new(args[0], null, console: true);
 
-        Caller caller = new(cmd, null, console: true);
-
-        __runOriginal = !CommandManager.root.recieveCommand(caller, args[0], args.Length > 1 ? args[1..] : []);
-
-        if (consoleInputField == null) {
-            var inputFieldField = typeof(HostConsole).GetField("_consoleInputField", BindingFlags.NonPublic | BindingFlags.Instance);
-            consoleInputField = (InputField)inputFieldField.GetValue(__instance);
+        var (_, resolvedCommand, rest) = CommandManager.root.resolveCommand(args);
+        
+        // Skip running vanilla code *only if* we parsed it and it's not a vanilla / compatibility command
+        if (resolvedCommand != null)
+        {
+            var options = resolvedCommand.options;
+            if (options.consoleCmd)
+            {
+                Plugin.logger?.LogDebug($"Procesing command {_message} in {nameof(Console_RecieveCommand)}");
+                CommandManager.execCommand(resolvedCommand, caller, rest);
+                __runOriginal = options.mustRunVanillaCode;
+            }
+            else
+            {
+                Plugin.logger?.LogDebug($"Caller {caller} is not allowed to use command {resolvedCommand} in {nameof(Console_RecieveCommand)}");
+                __runOriginal = false;
+            }
         }
-        consoleInputField.text = String.Empty;
+        __instance._consoleInputField.text = "";
     }
 
     [HarmonyPatch(typeof(PlayerMove), "Start")]

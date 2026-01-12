@@ -89,8 +89,7 @@ public class Utils {
     /// <param name="color"></param>
     public static void NotifyCaller(Caller caller, string message, Color color = default) {
         if (caller.isConsole) {
-            Plugin.getHostConsole();
-            Plugin.hostConsole.NC()?.New_LogMessage(message);
+            HostConsole._current.NC()?.New_LogMessage(message);
         } else if (caller.player == Player._mainPlayer) {
             if (color == default)
                 color = Color.white;
@@ -138,9 +137,9 @@ public class Utils {
             return provider.commands
                         .Where(cmd => {
                                 var o = cmd.Value.options;
-                                return (caller.isConsole && (o.consoleCmd || o.serverSide)) ||
-                                        (caller.isHost && (o.serverSide || o.hostOnly)) ||
-                                        (!remotePlayer && o.clientSide);
+                                return (caller.isConsole && o.consoleCmd) ||
+                                        (caller.isHost && (o.chatCommand == ChatCommandType.HostOnly || o.chatCommand == ChatCommandType.ServerSide || o.chatCommand == ChatCommandType.ClientSide)) ||
+                                        (!remotePlayer && o.chatCommand == ChatCommandType.ClientSide);
                                 })
                         .Select(cmd => cmd.Key)
                         .Concat(provider.childProviders

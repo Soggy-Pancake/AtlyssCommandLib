@@ -111,8 +111,9 @@ internal static class BuiltInCmds {
         return true;
     }
 
-    internal static bool listMods(Caller caller, string[] args) {
-        if (ModConfig.enableListingMods?.Value ?? false == false){
+    internal static bool listMods(Caller caller, string[] args)
+    {
+        if (!(ModConfig.enableListingMods?.Value ?? false)) {
             NotifyCaller(caller, "Listing mods is disabled on this server.", Color.red);
             return true;
         }
@@ -127,6 +128,33 @@ internal static class BuiltInCmds {
         string pluginList = sb.ToString().TrimEnd();
 
         NotifyCaller(caller, pluginList);
+        return true;
+    }
+    
+    internal static bool testClientSide(Caller caller, string[] args) {
+        NotifyCaller(caller, "Echo from test clientside command for commandlib!", Color.red);
+        return true;
+    }
+    
+    internal static bool testServerSide(Caller caller, string[] args) {
+        NotifyCaller(caller, "Echo from test clientside+serverside command for commandlib!", Color.red);
+
+        if (args.Length == 0)
+        {
+            NotifyCaller(caller, "No arguments given to command!", Color.red);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    internal static bool testHostOnlyCmd(Caller caller, string[] args) {
+        NotifyCaller(caller, "Echo from test hostonly command for commandlib!", Color.red);
+        return true;
+    }
+    
+    internal static bool testConsoleCmd(Caller caller, string[] args) {
+        NotifyCaller(caller, "Echo from test consolecmd command for commandlib!", Color.red);
         return true;
     }
 }

@@ -21,17 +21,9 @@ internal class Plugin : BaseUnityPlugin {
     internal static ManualLogSource? logger;
     internal static Harmony? harmony;
 
-    internal static HostConsole? hostConsole;
-    internal static ConsoleCommandManager? consoleCommandManager;
-
-    // TESTING CUSTOM COMMAND PROVIDERS 
-    internal static CommandProvider? serverCmds;
-    internal static CommandProvider? clientCmds;
-    // --------------------------------------------
-
     internal static bool chatColorsInstalled = false;
 
-    void Awake() {
+    private void Awake() {
         logger = Logger;
         logger.LogInfo($"Plugin {PluginInfo.NAME} is loaded!");
 
@@ -49,91 +41,62 @@ internal class Plugin : BaseUnityPlugin {
 
         CodeTalkerNetwork.RegisterBinaryListener<ServerCommandPkt>(CommandManager.updateServerCommands);
 
-        CommandOptions opt = new(clientSide: true, serverSide: true);
-        RegisterCommand("help", "Shows this help message", BuiltInCmds.Help, opt);
-        // RegisterCommand("test", "Test command", testTopLevel);
-        if (ModConfig.enableListingMods?.Value ?? false) {
-            opt.clientSide = false;
-            RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, opt);
-        }
+        RegisterCommand("help", "Shows this help message", BuiltInCmds.Help, new(ChatCommandType.ClientSide, consoleCmd: true));
+        RegisterCommand("mods", "List server's installed mods!", BuiltInCmds.listMods, new(ChatCommandType.ServerSide));
 
         registerVanillaCommands();
         addCommandCompatibility();
-        /* Custom command provider test! You can provide an optional parent provider here -------------V
-        serverCmds = new CommandProvider("server", "Test commands that run on the server side only", CommandProvider.Root);
-        ModCommand? cmd = serverCmds.RegisterCommand("test2", "A test command thats server only", testCmd, clientSide: false, serverSide: true);
-        serverCmds.RegisterAlias(["idk", "testAlias", "fuck", "me"], cmd);
 
-        clientCmds = new CommandProvider("clientStuffs", "Test client side only nested");
-        clientCmds.RegisterCommand("test8", "A test command thats client only", testCmd); */
+        if (ModConfig.enableTestCommands?.Value ?? false)
+            registerTestCommands();
     }
 
-    internal static void getHostConsole() {
-        if (hostConsole != null)
-            return;
+    private void registerVanillaCommands() {
+        // Client commands (Cmd_SendChatMessage)
+        CommandOptions clientSide = new(ChatCommandType.ClientSide) { mustRunVanillaCode = true };
+        RegisterCommand("emotes", "Lists all available emotes", vanillaCommandDummyCallback, clientSide);
+        
+        // Server commands (Server_RecieveChatMessage)
+        CommandOptions serverSide = new(ChatCommandType.ServerSide) { mustRunVanillaCode = true };
+        RegisterCommand("afk", "Go afk", vanillaCommandDummyCallback, serverSide);
 
-        hostConsole = FindFirstObjectByType<HostConsole>();
-
-        if (hostConsole == null) {
-            logger?.LogError("Failed to find HostConsole instance!");
-            return;
-        }
-
-        var consoleCommandManagerField = typeof(HostConsole).GetField("_cmdManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        consoleCommandManager = (ConsoleCommandManager)consoleCommandManagerField.GetValue(hostConsole);
+        // Console commands (Send_ServerMessage)
+        CommandOptions vanillaConsoleOpt = new(ChatCommandType.None, consoleCmd: true)  { mustRunVanillaCode = true };
+        RegisterCommand("shutdown", "Shuts down the server with optional countdown.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("cancelsd", "Cancel shutting down the server.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("starthost", "initalizes the server. Server instance must be shut down to initalize.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("kick", "kicks a connected client. Must have a output of the connection ID number. (ex: /kick 2)", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("ban", "same as kick, but also bans the client's address from connecting to the server. (ex: /ban 2)", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("clearbanlist", "clears the list of bans saved in your host settings profile.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("clients", "displays all clients that are connected to the server with Connnection IDs.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("maplist", "displays all loaded map instances on the server.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        RegisterCommand("savelog", "clears console log.", vanillaCommandDummyCallback, vanillaConsoleOpt);
+        
+        // Client + console commands
+        CommandOptions serverConsoleOpt = new(ChatCommandType.ClientSide, consoleCmd: true) { mustRunVanillaCode = true };
+        RegisterCommand("clear", "clears chat or console log.", vanillaCommandDummyCallback, serverConsoleOpt);
     }
-
-    void registerVanillaCommands() {
-        // Normal client commands
-        CommandOptions compatibilityOpt = new(clientSide: true, serverSide: true);
-        RegisterCommand("emotes", "Lists all available emotes", compaitibilityCommand, compatibilityOpt);
-        RegisterCommand("afk", "Go afk", compaitibilityCommand, compatibilityOpt);
-
-        // Console commands
-        CommandOptions vanillaConsoleOpt = new(consoleCmd: true);
-        RegisterCommand("shutdown", "Shuts down the server with optional countdown.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("cancelsd", "Cancel shutting down the server.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("starthost", "initalizes the server. Server instance must be shut down to initalize.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("kick", "kicks a connected client. Must have a output of the connection ID number. (ex: /kick 2)", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("ban", "same as kick, but also bans the client's address from connecting to the server. (ex: /ban 2)", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("clearbanlist", "clears the list of bans saved in your host settings profile.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("clients", "displays all clients that are connected to the server with Connnection IDs.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("maplist", "displays all loaded map instances on the server.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("savelog", "clears console log.", vanillaServerCommand, vanillaConsoleOpt);
-        RegisterCommand("clear", "clears console log.", vanillaServerCommand, vanillaConsoleOpt);
-    }
-
-    void addCommandCompatibility() {
-        CommandOptions chatColorOpt = new(true, true);
+    
+    private void addCommandCompatibility()
+    {
+        CommandOptions chatColorOpt = new(ChatCommandType.ServerSide);
         RegisterCommand("chatcolor", "Set your chat color using a hex code! /chatcolor #[color]. HASHTAG REQUIRED", BuiltInCmds.ChatColorProtector, chatColorOpt);
 
-        // Add others?
+        // Add others if desired
     }
 
-    bool vanillaServerCommand(Caller caller, string[] args) {
-        if (!caller.isConsole) return true;
-        logger?.LogInfo($"Vanilla server command '{caller.cmdPrefix}' called");
-        return false;
-    }
-
-    // use as delegate for commands that are handled by server side plugins that arent registered with AtlyssCommandLib
-    bool compaitibilityCommand(Caller caller, string[] args) {
-        return false;
-    }
-
-    bool testCmd(Caller caller, string[] args) {
-        NotifyCaller(caller, "Test command executed!");
-        foreach (var arg in args)
-            logger?.LogInfo("Arg: " + '"' + arg + '"');
+    private bool vanillaCommandDummyCallback(Caller caller, string[] args)
+    {
+        logger?.LogDebug($"Vanilla command '{caller.cmdPrefix}' called!");
         return true;
     }
+    
+    private void registerTestCommands() {
+        RegisterCommand("test-cs", "Run a clientside command", BuiltInCmds.testClientSide, new(ChatCommandType.ClientSide));
+        RegisterCommand("test-ss", "Run a serverside command", BuiltInCmds.testServerSide, new(ChatCommandType.ServerSide));
+        RegisterCommand("test-host", "Run a host only command", BuiltInCmds.testHostOnlyCmd, new(ChatCommandType.HostOnly));
+        RegisterCommand("test-cons", "Run a console command", BuiltInCmds.testConsoleCmd, new(ChatCommandType.None, consoleCmd: true));
 
-    bool testTopLevel(Caller caller, string[] args) {
-        logger?.LogInfo("Yo?");
-
-        foreach (var arg in args)
-            logger?.LogInfo("Arg: " + '"' + arg + '"');
-
-        return true;
+        // Add others if desired
     }
 }

@@ -29,12 +29,17 @@
 	<Import Project="$(SolutionRoot)Config.Build.user.props" />
 
 	<ItemGroup>
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        
 		<!-- BepInEx References -->
 		<Reference Include="$(BepinCoreDir)\0Harmony.dll" Private="False" />
 		<Reference Include="$(BepinCoreDir)\BepInEx*.dll" Private="False" />
 
 		<!-- Game References -->
-		<Reference Include="$(DependsDir)\Assembly-CSharp.dll" Private="False" />
+		<Reference Include="$(DependsDir)\Assembly-CSharp.dll" Private="False" Publicize="true" />
 		<Reference Include="$(DependsDir)\Unity*.dll" Private="False" />
 		<Reference Include="$(DependsDir)\Mirror*.dll" Private="False" />
 		<Reference Include="$(DependsDir)\Newtonsoft*.dll" Private="False" />

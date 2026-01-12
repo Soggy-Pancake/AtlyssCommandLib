@@ -30,7 +30,8 @@ public struct Caller {
 
     internal string cmdPrefix;
 
-    internal Caller(string prefix, Player? _player, bool console = false) {
+    internal Caller(string prefix, Player? _player, bool console = false)
+    {
         cmdPrefix = prefix;
         player = _player;
         isConsole = console;
@@ -40,4 +41,6 @@ public struct Caller {
         cmdPrefix = prefix;
         player = chatBehaviour.GetComponent<Player>();
     }
+
+    public override string ToString() => $"Player {player?._nickname} (console {isConsole}, remote {IsRemote})";
 }

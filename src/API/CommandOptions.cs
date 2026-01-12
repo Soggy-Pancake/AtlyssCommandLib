@@ -3,43 +3,51 @@ using System.Collections.Generic;
 using System.Text;
 using HarmonyLib;
 
-namespace AtlyssCommandLib.API; 
+namespace AtlyssCommandLib.API;
 
 /// <summary>
 /// Options for a command. This is a struct to avoid reference issues so you can reuse this without worrying.
 /// </summary>
 public struct CommandOptions {
-
     /// <summary>
-    /// This command runs on the client.
+    /// Whenever this command can be used in chat
     /// </summary>
-    public bool clientSide;
+    public ChatCommandType chatCommand;
 
     /// <summary>
-    /// This command to runs on the server and will be announced to clients. Return true if client to forward to the server.
-    /// </summary>
-    public bool serverSide;
-
-    /// <summary>
-    /// Allow this command to run from the console. **Always check if the caller has permissions if this can be run from client or server!**
+    /// Whenever this command can be called from the host console.
     /// </summary>
     public bool consoleCmd;
 
     /// <summary>
-    /// This command can only be run by the host and will be hidden.
+    /// Whenever this command is implemented by vanilla or another mod that doesn't use CommandLib.
     /// </summary>
-    public bool hostOnly;
+    internal bool mustRunVanillaCode;
 
     /// <summary>
-    /// Default options: clientSide = true, serverSide = false, consoleCmd = false
+    /// Default options: chatCommand = Local, consoleCmd = false
     /// </summary>
     public CommandOptions() {
-        clientSide = true;
-        serverSide = false;
+        chatCommand = ChatCommandType.ClientSide;
         consoleCmd = false;
-        hostOnly = false;
+    }
+    
+    /// <summary>
+    /// Default options: consoleCmd = false
+    /// </summary>
+    public CommandOptions(ChatCommandType chatCommand) {
+        this.chatCommand = chatCommand;
+        this.consoleCmd = false;
     }
 
+    /// <summary>
+    /// Creates command options
+    /// </summary>
+    public CommandOptions(ChatCommandType chatCommand, bool consoleCmd) {
+        this.chatCommand = chatCommand;
+        this.consoleCmd = consoleCmd;
+    }
+    
     /// <summary>
     /// Full optional constructor, everything defaults to false
     /// </summary>
@@ -47,10 +55,21 @@ public struct CommandOptions {
     /// <param name="serverSide"></param>
     /// <param name="consoleCmd"></param>
     /// <param name="hostOnly"></param>
+    [Obsolete("Use the ChatCommandType variant")]
     public CommandOptions(bool clientSide = false, bool serverSide = false, bool consoleCmd = false, bool hostOnly = false) {
-        this.clientSide = clientSide;
-        this.serverSide = serverSide;
         this.consoleCmd = consoleCmd;
-        this.hostOnly = hostOnly;
+        if (hostOnly)
+            chatCommand = ChatCommandType.HostOnly;
+        else if (serverSide)
+            chatCommand = ChatCommandType.ServerSide;
+        else if (clientSide)
+            chatCommand = ChatCommandType.ClientSide;
+        else
+            chatCommand = ChatCommandType.None;
+    }
+
+    public override string ToString()
+    {
+        return $"[chatCommand = {chatCommand}, consoleCmd = {consoleCmd}]";
     }
 }

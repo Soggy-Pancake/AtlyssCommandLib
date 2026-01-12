@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Linq;
@@ -11,6 +12,10 @@ namespace AtlyssCommandLib.API;
 
 /// <summary>
 /// Delegate for command callbacks.
+/// If it returns true, the command is considered to have been successful.
+/// If it returns false, the command is considered to have failed, and a help message will be printed.
+/// For server side commands, when the call comes from the send chat method, the return value is instead
+/// used to determine if the command should be sent to the server.
 /// </summary>
 /// <param name="caller"></param>
 /// <param name="args"></param>
@@ -135,21 +140,21 @@ public class CommandProvider {
             return;
         }
 
-        if (!(options.clientSide || options.serverSide || options.consoleCmd || options.hostOnly)) {
-            Plugin.logger?.LogError($"Failed to register Command '{cmd.Command}'! Command has to either be a client, server, or console Command!");
+        if (!Enum.IsDefined(typeof(ChatCommandType), options.chatCommand)) {
+            Plugin.logger?.LogError($"Failed to register Command '{cmd.Command}'! Command has to have a valid chat command type!");
             return;
         }
-
+        
         commands.Add(cmd.Command, cmd);
 
         // Apply server commands flag to all parents
         CommandProvider? parent = this;
         CommandOptions cmdOptions = cmd.options;
         while (parent != null) {
-            parent.hasClientCommands = parent.hasClientCommands || cmdOptions.clientSide;
-            parent.hasServerCommands = parent.hasServerCommands || cmdOptions.serverSide;
+            parent.hasClientCommands = parent.hasClientCommands || cmdOptions.chatCommand == ChatCommandType.ClientSide;
+            parent.hasServerCommands = parent.hasServerCommands || cmdOptions.chatCommand == ChatCommandType.ServerSide;
             parent.hasConsoleCommands = parent.hasConsoleCommands || cmdOptions.consoleCmd;
-            parent.hasHostOnlyCommands = parent.hasHostOnlyCommands || cmdOptions.hostOnly;
+            parent.hasHostOnlyCommands = parent.hasHostOnlyCommands || cmdOptions.chatCommand == ChatCommandType.HostOnly;
             parent = parent.ParentProvider;
         }
     }
@@ -219,88 +224,46 @@ public class CommandProvider {
         }
     }
 
-    internal bool recieveCommand(Caller caller, string command, string[] args) {
-        // Return true if message was handled here
+    internal (CommandProvider provider, ModCommand? resolvedCommand, string[] rest) resolveCommand(string[] args)
+    {
+        if (args.Length == 0)
+            return (this, null, []);
 
-        if (command.StartsWith('/'))
-            command = command[1..];
-        caller.cmdPrefix = command;
-
-        bool amServer = Player._mainPlayer.NC()?.Network_isHostPlayer ?? false;
-
-        if (commands.ContainsKey(command) || (aliases.ContainsKey(command) && !aliases[command].isProvider)) {
-            try {
-                ModCommand targetCmd;
-                if (commands.ContainsKey(command))
-                    targetCmd = commands[command];
-                else
-                    targetCmd = aliases[command].command;
-
-                return CommandManager.execCommand(targetCmd, caller, args);
-
-            } catch (ArgumentException e) {
-                if (!string.IsNullOrEmpty(e.Message) && string.IsNullOrEmpty(e.ParamName)) {
-                    NotifyCaller(caller, $"Recieved invalid arguments for command '{command} {string.Join(" ", args)}' Reason: " + e.Message, Color.yellow);
-                } else if (!string.IsNullOrEmpty(e.ParamName) && !string.IsNullOrEmpty(e.Message)) {
-                    NotifyCaller(caller, $"'{e.ParamName}' is invalid! Reason: {e.Message}");
-                } else
-                    Plugin.logger?.LogError($"Recieved invalid arguments for command '{command} {string.Join(" ", args)}' Error: " + e);
-
-                commands[command].printHelp(caller);
-                Patches.blockMsg = true;
-                return true;
-            } catch (Exception e) {
-                Plugin.logger?.LogError($"Error executing command '{command} {string.Join(" ", args)}' Error: " + e);
-                commands[command].printHelp(caller);
-                Patches.blockMsg = true;
-                return true;
-            }
-        }
-
-        if (childProviders.ContainsKey(command) || (aliases.ContainsKey(command) && aliases[command].isProvider)) {
-            CommandProvider targetProvider;
-            if (aliases.ContainsKey(command))
-                targetProvider = aliases[command].provider;
-            else
-                targetProvider = childProviders[command];
-
-            string cmd = args.Length > 0 ? args[0] : "";
-
-            return targetProvider.recieveCommand(caller, cmd, args.Length > 1 ? args[1..] : []);
-        }
-
-        if (this == Root && !amServer) { 
-            if (CommandManager.serverCommands.ContainsKey(command)) {
-                // NotifyCaller(caller, CommandManager.serverCommands[command]);
-                return false;
-            }
-        }
-
+        var command = args[0];
+        var rest = args.Length > 1 ? args[1..] : [];
         
-        {   // Failed to find command
-            List<string> stack = new();
-            CommandProvider? p = this;
-            while (p?.ParentProvider != null) {
-                stack.Add(p.prefix);
-                p = p.ParentProvider;
-            }
+        if (commands.TryGetValue(command, out ModCommand resolvedCommand))
+            return (this, resolvedCommand, rest);
 
-            string list = "";
-            if (stack.Count > 0) {
-                stack.Reverse();
-                list = string.Join(' ', stack);
-                list += ' ';
-            }
+        if (aliases.TryGetValue(command, out Alias resolvedAlias) && !resolvedAlias.isProvider)
+            return (this, resolvedAlias.command, rest);
 
-            Patches.blockReason = $"\nCommand '{command}' not found! Use /help {list}to list available comands";
-            if (this == Root && (ModConfig.sendFailedCommands?.Value ?? false)){
-                Plugin.logger?.LogDebug("Allowing failed command through!");
-                return false;
-            }
+        if (childProviders.TryGetValue(command, out CommandProvider childProvider))
+            return childProvider.resolveCommand(args[1..]);
 
-            Patches.blockMsg = true;
-            return true;
+        if (aliases.TryGetValue(command, out Alias resolvedChildAlias) && resolvedChildAlias.isProvider)
+            return resolvedChildAlias.provider.resolveCommand(args[1..]);
+
+        return (this, null, []);
+    }
+
+    internal string GetNotFoundHelpCommand(string command)
+    {
+        List<string> stack = new();
+        CommandProvider? p = this;
+        while (p.ParentProvider != null) {
+            stack.Add(p.prefix);
+            p = p.ParentProvider;
         }
+
+        string list = "";
+        if (stack.Count > 0) {
+            stack.Reverse();
+            list = string.Join(' ', stack);
+            list += ' ';
+        }
+
+        return $"\nCommand '{command}' not found! Use /help {list}to list available comands";
     }
 
     /// <summary>

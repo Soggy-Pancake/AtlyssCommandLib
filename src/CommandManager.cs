@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AtlyssCommandLib.API;
 using CodeTalker.Packets;
+using UnityEngine;
 using UnityEngine.Profiling;
 using static AtlyssCommandLib.API.Utils;
 
@@ -14,13 +15,21 @@ internal class CommandManager {
     // commands local to the server [prefix, helpMessage]
     internal static Dictionary<string, string> serverCommands = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+    internal static bool CommandIsInstalled(string command)
+    {
+        if (command == "chatcolor")
+            return Plugin.chatColorsInstalled;
+        
+        return true;
+    }
+
     internal static void updateServerCommands() {
         if(Player._mainPlayer.NC()?.Network_isHostPlayer ?? false)
             return;
 
         serverCommands.Clear();
         foreach (var cmd in root.commands.Values) {
-            if (cmd.options.serverSide && (cmd.Command != "chatcolor" || (cmd.Command == "chatcolor" && Plugin.chatColorsInstalled))) {
+            if (cmd.options.chatCommand == ChatCommandType.ServerSide && CommandIsInstalled(cmd.Command)) {
                 serverCommands[cmd.Command] = cmd.getHelpMessage();
             }
         }
@@ -41,57 +50,27 @@ internal class CommandManager {
     }
 
     internal static bool execCommand(ModCommand cmd, Caller caller, string[] args) {
-        bool amServer = caller.isHost;
-        var options = cmd.options;
-
-        Plugin.logger?.LogDebug("Command being called: " + caller.cmdPrefix);
-        Plugin.logger?.LogDebug("Am server?: " + amServer);
-        Plugin.logger?.LogDebug($"cmd: server/client/console {cmd.options.serverSide} {cmd.options.clientSide} {cmd.options.consoleCmd}");
-
-        // Console only
-        if (options.consoleCmd) { 
-            if (caller.isConsole)
-                cmd.Callback(caller, args);
-            else
-                Plugin.logger?.LogError($"Command '{caller.cmdPrefix}' is console only. Caller is console: {caller.isConsole}");
-            return true;
-        }
-
-        // Host only
-        if (options.hostOnly) {
-            if (caller.isHost)
-                cmd.Callback(caller, args);
-            else
-                Plugin.logger?.LogError($"Command '{caller.cmdPrefix}' is host only. Caller is host: {caller.isHost}");
-            return true;
-        }
-
-        // server side only
-        if (!options.clientSide && options.serverSide && amServer) { 
-            Plugin.logger?.LogDebug("Server side only command!");
-            if (!cmd.Callback(caller, args))
+        try
+        {
+            Plugin.logger?.LogDebug($"Processing command {caller.cmdPrefix} - options {cmd.options} - caller {caller}");
+            bool success = cmd.Callback(caller, args);
+            if (!success)
                 cmd.printHelp(caller);
-            return true;
-        }
+            return success;
+        } catch (ArgumentException e) {
+            if (!string.IsNullOrEmpty(e.Message) && string.IsNullOrEmpty(e.ParamName)) {
+                NotifyCaller(caller, $"Recieved invalid arguments for command '{caller.cmdPrefix} {string.Join(" ", args)}' Reason: " + e.Message, Color.yellow);
+            } else if (!string.IsNullOrEmpty(e.ParamName) && !string.IsNullOrEmpty(e.Message)) {
+                NotifyCaller(caller, $"'{e.ParamName}' is invalid! Reason: {e.Message}");
+            } else
+                Plugin.logger?.LogError($"Recieved invalid arguments for command '{caller.cmdPrefix} {string.Join(" ", args)}' Error: " + e);
 
-        // client side only
-        if (options.clientSide && !options.serverSide) { 
-            Plugin.logger?.LogDebug("Client side only command!");
-            if (!cmd.Callback(caller, args))
-                cmd.printHelp(caller);
-            return true;
+            cmd.printHelp(caller);
+            return false;
+        } catch (Exception e) {
+            Plugin.logger?.LogError($"Error executing command '{caller.cmdPrefix} {string.Join(" ", args)}' Error: " + e);
+            cmd.printHelp(caller);
+            return false;
         }
-
-        // Server and client side
-        if (options.serverSide && options.clientSide) {
-            Plugin.logger?.LogDebug("Client and server side command!");
-            bool result = cmd.Callback(caller, args);
-            if (!result && cmd.Callback != BuiltInCmds.Help)
-                cmd.printHelp(caller);
-            return amServer || !result;
-            // callback returns true to forward to server if client. Blocks if already server.
-        }
-
-        return true;
     }
 }
