@@ -138,7 +138,7 @@ internal static class Patches {
             }
             else
             {
-                Plugin.logger?.LogDebug($"Caller {caller} is not allowed to use command {resolvedCommand} in {nameof(Server_RecieveChatMessage)}");
+                //Plugin.logger?.LogDebug($"Caller {caller} is not allowed to use command {resolvedCommand} in {nameof(Server_RecieveChatMessage)}");
                 __runOriginal = false;
             }
         }
