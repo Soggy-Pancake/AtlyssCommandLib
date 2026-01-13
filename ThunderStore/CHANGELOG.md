@@ -1,3 +1,12 @@
+## 0.0.7
+
+- Refactor by Marioalexsan that improves compatibility with other mods
+	- HostModeration should work now
+- SendFailedCommands now defaults to true (capitalization change to force update)
+- New CommandOptions constructor
+	- Commands can now only be server, client, or hostonly. The old bool flags have been marked as obsolete.
+- Help command now shows full path for each command instead of /cmd when nested
+
 ## 0.0.6
 - Make sure chatcolors loads before commandlib
 
