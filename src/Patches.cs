@@ -46,6 +46,9 @@ internal static class Patches {
     [HarmonyPatch(typeof(ChatBehaviour), "Cmd_SendChatMessage")]
     internal static void Client_SendChatMessage(ref ChatBehaviour __instance, ref bool __runOriginal, string _message) {
         //Plugin.logger?.LogDebug("Send chat message!");
+        if (__instance.Iterate_EmoteCommands(_message.Trim()))
+            return;
+
         if (!getValidCommand(_message, out var args))
             return;
 
